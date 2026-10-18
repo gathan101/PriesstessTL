@@ -49,8 +49,22 @@ async function getDetector() {
 }
 
 async function getOcr() {
-  if (!ocrPromise) ocrPromise = pipeline('image-to-text', 'onnx-community/manga-ocr-base-ONNX', { dtype: 'q4' })
+  if (!ocrPromise) {
+    ocrPromise = pipeline('image-to-text', 'onnx-community/manga-ocr-base-ONNX', { dtype: 'q4' }).catch(() => pipeline('image-to-text', 'onnx-community/manga-ocr-base-ONNX', { dtype: 'fp32' }))
+  }
   return ocrPromise
+}
+
+async function runOcrOnCanvas(canvas) {
+  const scaled = document.createElement('canvas')
+  const scale = Math.min(3, Math.max(1, 512 / Math.max(canvas.width, canvas.height)))
+  scaled.width = Math.max(1, Math.round(canvas.width * scale))
+  scaled.height = Math.max(1, Math.round(canvas.height * scale))
+  const context = scaled.getContext('2d')
+  context.imageSmoothingEnabled = true
+  context.drawImage(canvas, 0, 0, scaled.width, scaled.height)
+  const ocr = await getOcr()
+  return extractOcrText(await ocr(scaled.toDataURL('image/png')))
 }
 
 export async function readCrop(file, bbox, onProgress = () => {}) {
@@ -62,10 +76,9 @@ export async function readCrop(file, bbox, onProgress = () => {}) {
   crop.width = Math.max(1, Math.round(image.width * width / 100))
   crop.height = Math.max(1, Math.round(image.height * height / 100))
   crop.getContext('2d').drawImage(image, image.width * left / 100, image.height * top / 100, crop.width, crop.height, 0, 0, crop.width, crop.height)
-  const ocr = await getOcr()
-  const result = await ocr(crop.toDataURL('image/png'))
+  const text = await runOcrOnCanvas(crop)
   image.close?.()
-  return extractOcrText(result)
+  return text
 }
 
 export async function detectPage(file, onProgress = () => {}) {
@@ -93,7 +106,6 @@ export async function detectPage(file, onProgress = () => {}) {
   if (textRegions.length) {
     try {
       onProgress('Memuat Manga OCR lokal...')
-      const ocr = await getOcr()
       for (let index = 0; index < textRegions.length; index += 1) {
         const region = textRegions[index]
         const crop = document.createElement('canvas')
@@ -101,8 +113,7 @@ export async function detectPage(file, onProgress = () => {}) {
         crop.height = Math.max(1, Math.round(region.bbox[3] - region.bbox[1]))
         crop.getContext('2d').drawImage(image, region.bbox[0], region.bbox[1], crop.width, crop.height, 0, 0, crop.width, crop.height)
         try {
-          const result = await ocr(crop.toDataURL('image/png'))
-          region.original = extractOcrText(result)
+          region.original = await runOcrOnCanvas(crop)
         } catch { region.original = '' }
         onProgress(`Manga OCR: ${index + 1}/${textRegions.length}`)
       }

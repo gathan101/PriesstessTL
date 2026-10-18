@@ -1,4 +1,4 @@
-# DaikanTL Desktop
+# PriesstessTL Desktop
 
 Aplikasi desktop lokal untuk menerjemahkan halaman manga Jepang ke Bahasa Indonesia.
 UI dibuat dengan Vue 3 + Vite dan dibungkus sebagai aplikasi Windows memakai Tauri v2.

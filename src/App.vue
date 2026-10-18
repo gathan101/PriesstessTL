@@ -125,7 +125,14 @@ async function runDetection(file) {
       original: region.original || '',
       translated: '',
     }))
-    if (detected.length) { bubbles.value = detected; syncActivePage(); activeBubble.value = 0; status.value = `Detected ${detected.length} regions` }
+    if (detected.length) {
+      bubbles.value = detected
+      syncActivePage()
+      activeBubble.value = 0
+      const ocrCount = detected.filter((bubble) => bubble.original.trim()).length
+      status.value = `Detected ${detected.length} regions — OCR ${ocrCount}/${detected.length}`
+      notice.value = ocrCount ? `${ocrCount} teks OCR siap diterjemahkan.` : 'Area terdeteksi, tetapi OCR belum membaca teks. Coba ulang Detect atau isi teks pada editor.'
+    }
     else status.value = 'No text region found — gunakan Shape Tool'
   } catch (error) {
     status.value = 'Local AI unavailable'
