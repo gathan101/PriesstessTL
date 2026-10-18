@@ -7,7 +7,8 @@ alat yang ringkas.
 
 ## Prinsip aplikasi
 
-- Gambar manga diproses di laptop, tanpa database dan tanpa sinkronisasi cloud.
+- Deteksi posisi bubble dilakukan lokal di laptop menggunakan Koharu YOLO.
+- Hanya crop bubble kecil yang dikirim ke Gemini Vision untuk membaca dan menerjemahkan teks.
 - Gemini memakai **BYOK (Bring Your Own Key)**: pengguna memasukkan API key sendiri.
 - API key hanya disimpan di `localStorage` aplikasi pada perangkat pengguna.
 - Tidak ada API key milik pembuat yang ditanamkan di dalam installer.
@@ -31,8 +32,16 @@ Installer akan dibuat di:
 src-tauri/target/release/bundle/
 ```
 
+## Alur terjemahan
+
+1. Klik **Detect** untuk menjalankan deteksi bubble lokal.
+2. Setiap bubble di-crop menjadi JPEG kecil.
+3. Crop dikirim berurutan ke Gemini Vision bersama API key milik pengguna.
+4. Gemini mengembalikan teks Jepang dan terjemahan Indonesia dalam JSON.
+5. Original dan preview terjemahan diperbarui langsung per bubble.
+
 ## Status saat ini
 
 Fondasi UI, upload gambar, preview, pengaturan Gemini BYOK, dan konfigurasi Tauri
-sudah tersedia. Tahap berikutnya adalah memasukkan model deteksi Koharu/ogkalu,
-manga-OCR, penerjemahan teks saja, serta typesetting dan export PNG.
+sudah tersedia, termasuk deteksi Koharu lokal, Gemini Vision crop translation,
+typesetting, multi-page workflow, dan export PNG/JPEG/WebP.

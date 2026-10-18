@@ -1,18 +1,8 @@
 import * as ort from 'onnxruntime-web'
-import { pipeline } from '@huggingface/transformers'
 
 const DETECTOR_URL = 'https://huggingface.co/Liiesl/bubble-segment-onnx/resolve/main/koharu-yolo26s-seg.onnx'
 const CLASS_NAMES = ['frame', 'dialogue_text', 'balloon', 'onomatopoeia_text']
 let detectorPromise
-let ocrPromise
-
-function extractOcrText(result) {
-  const candidates = Array.isArray(result) ? result : [result]
-  return candidates.map((item) => {
-    if (typeof item === 'string') return item
-    return item?.generated_text || item?.text || item?.output_text || ''
-  }).join(' ').replace(/\s+/g, ' ').trim()
-}
 
 function makeInput(image, size = 1024) {
   const ratio = Math.min(size / image.width, size / image.height)
@@ -48,25 +38,6 @@ async function getDetector() {
   return detectorPromise
 }
 
-async function getOcr() {
-  if (!ocrPromise) {
-    ocrPromise = pipeline('image-to-text', 'onnx-community/manga-ocr-base-ONNX', { dtype: 'q4' }).catch(() => pipeline('image-to-text', 'onnx-community/manga-ocr-base-ONNX', { dtype: 'fp32' }))
-  }
-  return ocrPromise
-}
-
-async function runOcrOnCanvas(canvas) {
-  const scaled = document.createElement('canvas')
-  const scale = Math.min(3, Math.max(1, 512 / Math.max(canvas.width, canvas.height)))
-  scaled.width = Math.max(1, Math.round(canvas.width * scale))
-  scaled.height = Math.max(1, Math.round(canvas.height * scale))
-  const context = scaled.getContext('2d')
-  context.imageSmoothingEnabled = true
-  context.drawImage(canvas, 0, 0, scaled.width, scaled.height)
-  const ocr = await getOcr()
-  return extractOcrText(await ocr(scaled.toDataURL('image/png')))
-}
-
 export async function readCrop(file, bbox, onProgress = () => {}) {
   if (!file || file.size === 0) throw new Error('File gambar tidak tersedia untuk OCR.')
   onProgress('Memuat Manga OCR lokal...')
@@ -76,9 +47,27 @@ export async function readCrop(file, bbox, onProgress = () => {}) {
   crop.width = Math.max(1, Math.round(image.width * width / 100))
   crop.height = Math.max(1, Math.round(image.height * height / 100))
   crop.getContext('2d').drawImage(image, image.width * left / 100, image.height * top / 100, crop.width, crop.height, 0, 0, crop.width, crop.height)
-  const text = await runOcrOnCanvas(crop)
   image.close?.()
-  return text
+  return crop.toDataURL('image/jpeg', 0.92)
+}
+
+export async function cropImageDataUrl(file, bbox, onProgress = () => {}) {
+  if (!file || file.size === 0) throw new Error('File gambar tidak tersedia.')
+  onProgress('Menyiapkan crop bubble...')
+  const image = await createImageBitmap(file)
+  const [left, top, width, height] = bbox
+  const paddingX = Math.round(image.width * width / 100 * 0.08)
+  const paddingY = Math.round(image.height * height / 100 * 0.08)
+  const sx = Math.max(0, Math.round(image.width * left / 100) - paddingX)
+  const sy = Math.max(0, Math.round(image.height * top / 100) - paddingY)
+  const ex = Math.min(image.width, Math.round(image.width * (left + width) / 100) + paddingX)
+  const ey = Math.min(image.height, Math.round(image.height * (top + height) / 100) + paddingY)
+  const crop = document.createElement('canvas')
+  crop.width = Math.max(1, ex - sx)
+  crop.height = Math.max(1, ey - sy)
+  crop.getContext('2d').drawImage(image, sx, sy, crop.width, crop.height, 0, 0, crop.width, crop.height)
+  image.close?.()
+  return crop.toDataURL('image/jpeg', 0.92)
 }
 
 export async function detectPage(file, onProgress = () => {}) {
@@ -102,26 +91,7 @@ export async function detectPage(file, onProgress = () => {}) {
     if (x2 <= x1 || y2 <= y1) continue
     regions.push({ type: CLASS_NAMES[classId], score, bbox: [x1, y1, x2, y2], original: '' })
   }
-  const textRegions = regions.filter((region) => region.type === 'dialogue_text' || region.type === 'onomatopoeia_text' || region.type === 'balloon')
-  if (textRegions.length) {
-    try {
-      onProgress('Memuat Manga OCR lokal...')
-      for (let index = 0; index < textRegions.length; index += 1) {
-        const region = textRegions[index]
-        const crop = document.createElement('canvas')
-        crop.width = Math.max(1, Math.round(region.bbox[2] - region.bbox[0]))
-        crop.height = Math.max(1, Math.round(region.bbox[3] - region.bbox[1]))
-        crop.getContext('2d').drawImage(image, region.bbox[0], region.bbox[1], crop.width, crop.height, 0, 0, crop.width, crop.height)
-        try {
-          region.original = await runOcrOnCanvas(crop)
-        } catch { region.original = '' }
-        onProgress(`Manga OCR: ${index + 1}/${textRegions.length}`)
-      }
-    } catch {
-      onProgress('OCR lokal belum tersedia — area tetap bisa diedit manual')
-    }
-  }
-  onProgress(`Deteksi selesai: ${regions.length} area`)
+  onProgress(`Deteksi lokal selesai: ${regions.length} area`)
   const pageWidth = image.width
   const pageHeight = image.height
   image.close?.()
