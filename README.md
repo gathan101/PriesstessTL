@@ -10,7 +10,6 @@ alat yang ringkas.
 - Deteksi posisi bubble dilakukan lokal di laptop menggunakan Koharu YOLO.
 - Hanya crop bubble kecil yang dikirim ke Gemini Vision untuk membaca dan menerjemahkan teks.
 - Gemini memakai **BYOK (Bring Your Own Key)**: pengguna memasukkan API key sendiri.
-- API key hanya disimpan di `localStorage` aplikasi pada perangkat pengguna.
 - Tidak ada API key milik pembuat yang ditanamkan di dalam installer.
 
 ## Menjalankan saat pengembangan
