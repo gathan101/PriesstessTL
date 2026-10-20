@@ -1,7 +1,7 @@
 import * as ort from 'onnxruntime-web'
+import { CLASS_NAMES, mergeNestedRegions } from './detection'
 
 const DETECTOR_URL = 'https://huggingface.co/Liiesl/bubble-segment-onnx/resolve/main/koharu-yolo26s-seg.onnx'
-const CLASS_NAMES = ['frame', 'dialogue_text', 'balloon', 'onomatopoeia_text']
 let detectorPromise
 
 function makeInput(image, size = 1024) {
@@ -91,9 +91,10 @@ export async function detectPage(file, onProgress = () => {}) {
     if (x2 <= x1 || y2 <= y1) continue
     regions.push({ type: CLASS_NAMES[classId], score, bbox: [x1, y1, x2, y2], original: '' })
   }
-  onProgress(`Deteksi lokal selesai: ${regions.length} area`)
+  const merged = mergeNestedRegions(regions)
+  onProgress(`Deteksi lokal selesai: ${merged.length} area`)
   const pageWidth = image.width
   const pageHeight = image.height
   image.close?.()
-  return { width: pageWidth, height: pageHeight, regions }
+  return { width: pageWidth, height: pageHeight, regions: merged }
 }

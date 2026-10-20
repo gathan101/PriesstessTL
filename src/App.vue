@@ -5,6 +5,7 @@ import { writeFile } from '@tauri-apps/plugin-fs'
 import { getGeminiModel, testGeminiKey, translateText, translateCropVision } from './services/gemini'
 import { DEFAULT_PROMPTS, STYLE_OPTIONS, promptForStyle } from './services/prompts'
 import { cropImageDataUrl, detectPage } from './services/localEngine'
+import { measureTypeset } from './services/typesetting'
 
 const fileInput = ref(null)
 const editorInput = ref(null)
@@ -203,42 +204,6 @@ function updateBoxDrag(event) {
 function finishBoxDrag() { boxDrag.value = null }
 function toggleFontStyle(index, style) {
   fontPresets.value[index][style] = !fontPresets.value[index][style]
-}
-function typesetText(value) {
-  return String(value || '').replace(/\s+/g, ' ').trim().toUpperCase()
-}
-function measureTypeset(text, width, height, vertical = false) {
-  const value = typesetText(text)
-  if (!value) return { text: '', fontSize: 12, lineHeight: 1.1 }
-  if (vertical) {
-    const chars = [...value.replace(/\s/g, '')]
-    const fontSize = Math.max(9, Math.min(28, height / Math.max(chars.length, 1) * 0.78))
-    return { text: chars.join('\n'), fontSize, lineHeight: 1.02 }
-  }
-  const canvas = document.createElement('canvas')
-  const context = canvas.getContext('2d')
-  const words = value.split(' ')
-  const maxWidth = Math.max(20, width * 0.82)
-  let best = { text: value, fontSize: 10, lineHeight: 1.08 }
-  for (let fontSize = Math.min(42, Math.max(10, height * 0.22)); fontSize >= 9; fontSize -= 1) {
-    context.font = `700 ${fontSize}px Arial, sans-serif`
-    const lines = []
-    let line = ''
-    words.forEach((word) => {
-      const candidate = line ? `${line} ${word}` : word
-      if (line && context.measureText(candidate).width > maxWidth) {
-        lines.push(line)
-        line = word
-      } else line = candidate
-    })
-    if (line) lines.push(line)
-    const lineHeight = fontSize * 1.08
-    if (lines.length * lineHeight <= height * 0.82) {
-      best = { text: lines.join('\n'), fontSize, lineHeight: 1.08 }
-      break
-    }
-  }
-  return best
 }
 function typesetForPreview(bubble) {
   const box = document.querySelector('.translated-panel .page-wrap')
