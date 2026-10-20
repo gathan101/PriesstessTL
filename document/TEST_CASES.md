@@ -1,22 +1,16 @@
 # TEST CASES — DaikanTL (PriesstessTL)
 
-**Versi dokumen:** 1.0
-**Cakupan:** Deteksi & deduplikasi, geometri editor, translation & retry, typesetting, multi-page & export
 **Jumlah test case:** 40
-**Jenis pengujian:** Manual (UI) + Automated (Vitest)
+**Cakupan:** Deteksi & deduplikasi, geometri editor, translation & retry, typesetting, multi-page & export
 
----
-
-## Ringkasan
-
-| Kelompok | ID | Jumlah | Otomatis |
-|---|---|---|---|
-| A. Deteksi & Deduplikasi | TC-01 – TC-08 | 8 | TC-01 – TC-07 |
-| B. Geometri & Editor | TC-09 – TC-16 | 8 | TC-09 – TC-11 |
-| C. Translation & Retry | TC-17 – TC-25 | 9 | TC-17 – TC-23 |
-| D. Typesetting & Masking | TC-26 – TC-32 | 7 | TC-26 – TC-31 |
-| E. Multi-Page, Export & Persistence | TC-33 – TC-40 | 8 | — |
-| **Total** | | **40** | **27 otomatis, 13 manual** |
+| Kelompok | ID | Jumlah |
+|---|---|---|
+| A. Deteksi & Deduplikasi | TC-01 – TC-08 | 8 |
+| B. Geometri & Editor | TC-09 – TC-16 | 8 |
+| C. Translation, Parsing & Retry | TC-17 – TC-25 | 9 |
+| D. Typesetting & Masking | TC-26 – TC-32 | 7 |
+| E. Multi-Page, Export & Persistence | TC-33 – TC-40 | 8 |
+| **Total** | | **40** |
 
 ---
 
@@ -24,7 +18,7 @@
 
 | ID | Skenario | Input | Langkah | Hasil yang diharapkan | Status |
 |---|---|---|---|---|---|
-| **TC-01** | Satu balon + teks di dalamnya | Gambar dengan 1 balon percakapan | Klik **Detect** | Muncul **1 kotak** saja dan 1 hasil terjemahan | ✅ |
+| **TC-01** | Satu balon + teks di dalamnya | Gambar dengan 1 balon percakapan | Klik **Detect** | Muncul 1 kotak saja dan 1 hasil terjemahan | ✅ |
 | **TC-02** | Containment merge | `balloon = [100,100,200,200]`, `dialogue_text = [130,130,140,100]` | Jalankan `mergeNestedRegions()` | 1 region gabungan; `bbox` = balon, `textBbox` = teks dalam | ✅ |
 | **TC-03** | NMS kotak beririsan | Dua `balloon` dengan IoU 0.8, skor 0.9 dan 0.6 | Jalankan `nms()` | Hanya kotak skor 0.9 yang tersisa | ✅ |
 | **TC-04** | SFX di luar balon | `onomatopoeia_text` di area kosong | Detect | SFX tetap bubble mandiri, tidak digabung | ✅ |
@@ -39,11 +33,11 @@
 
 | ID | Skenario | Input | Langkah | Hasil yang diharapkan | Status |
 |---|---|---|---|---|---|
-| **TC-09** | Konversi letterbox | Gambar 800×1200, kotak model `x=200` | Decode | `ratio = 0.8533`, `dx = 170.67`, hasil ≈ **34.4 px** | ✅ |
+| **TC-09** | Konversi letterbox | Gambar 800×1200, kotak model `x=200` | Decode | `ratio = 0.8533`, `dx = 170.67`, hasil ≈ 34.4 px | ✅ |
 | **TC-10** | Persentase bbox | Gambar 1000×1500, bbox `[10,10,20,20]` | Simpan lalu export | `x=100px`, `y=150px`, `w=200px`, `h=300px` | ✅ |
 | **TC-11** | Clamp batas gambar | Kotak keluar kanvas | Decode | Koordinat dipotong ke `0..width/height` | ✅ |
 | **TC-12** | Shape Tool drag | Tekan `A`, drag 150×80 px | Lepas mouse | Bubble dibuat; tidak hilang walau kursor keluar kanvas | ✅ |
-| **TC-13** | Ukuran minimum | Drag 3×2 px | Lepas mouse | Bubble **tidak dibuat** karena `< 1%` | ✅ |
+| **TC-13** | Ukuran minimum | Drag 3×2 px | Lepas mouse | Bubble tidak dibuat karena `< 1%` | ✅ |
 | **TC-14** | Resize 4 sudut | Bubble aktif, drag handle `se` | Drag keluar kanvas | Ukuran bertambah, tetap di dalam 100% | ✅ |
 | **TC-15** | Pan & zoom sinkron | Zoom 2×, pan 100 px | Amati kedua panel | Kiri dan kanan bergerak identik | ✅ |
 | **TC-16** | Hapus bubble | Bubble nomor 2 dari 4 | Klik hapus | Sisa 3 bubble, ID diurutkan ulang 1–3 | ✅ |
@@ -92,58 +86,3 @@
 | **TC-38** | API key persist | Isi key, tutup aplikasi | Buka aplikasi | Key masih ada di `localStorage` | ✅ |
 | **TC-39** | Prompt kustom persist | Ubah prompt gaya Casual | Restart aplikasi | Prompt kustom dimuat kembali | ✅ |
 | **TC-40** | Reset workspace | Sudah membuka 3 halaman | Klik reset | Semua URL di-`revokeObjectURL`, state bersih | ✅ |
-
----
-
-## Prioritas
-
-| Prioritas | Test Case | Alasan |
-|---|---|---|
-| 🔴 P0 | TC-01, TC-02, TC-03 | Mencegah terjemahan ganda |
-| 🟠 P1 | TC-17 – TC-25 | Stabilitas API dan parsing |
-| 🟡 P2 | TC-26 – TC-32 | Kualitas visual typesetting |
-| 🟢 P3 | TC-33 – TC-40 | Workflow dan export |
-
----
-
-## Cara Menjalankan
-
-### Automated (Vitest)
-
-```powershell
-npm install
-npm test
-```
-
-Mode watch:
-
-```powershell
-npm run test:watch
-```
-
-File test:
-
-```text
-tests/detection.test.js
-tests/typesetting.test.js
-```
-
-### Manual (UI)
-
-```powershell
-npm run tauri dev
-```
-
-Gunakan sampel manga minimal 3 halaman dengan variasi:
-1. Balon putih berisi teks vertikal.
-2. SFX di luar balon.
-3. Halaman dengan teks narasi di kotak.
-
----
-
-## Catatan Implementasi
-
-- `src/services/detection.js` berisi `iou`, `nms`, dan `mergeNestedRegions`.
-- `src/services/typesetting.js` berisi `typesetText`, `wrapWords`, dan `measureTypeset`.
-- `measureTypeset` memakai `canvas.measureText` di WebView; saat dijalankan di Node (Vitest) otomatis memakai estimator deterministik, sehingga hasil test stabil.
-- `localEngine.js` memanggil `mergeNestedRegions` sebelum mengembalikan region ke UI.
